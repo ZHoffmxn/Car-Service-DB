@@ -1,0 +1,2 @@
+CREATE DATABASE CarServiceDB
+USE CarServiceDB;
