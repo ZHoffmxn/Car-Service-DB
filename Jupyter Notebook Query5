@@ -1,0 +1,74 @@
+Make a mechanic temporarily unavailable for a period of time (e.g., because of illness or 
+vacation) and get a list of any services they may be involved in on the days they are 
+unavailable. 
+
+import pyodbc 
+import pandas as pd 
+
+# Establish the database connection 
+conn = pyodbc.connect("DRIVER={SQL Server};SERVER=ZSOLTSPC\\SQLEXPRESS;DATABASE=CarServiceDB") 
+cursor = conn.cursor() 
+
+# Define the mechanic's ID and unavailability period 
+employee_id = 'E7291'  
+unavailable_start_date = '2020-06-23'  
+unavailable_end_date = '2020-06-26'   
+reason = 'Vacation' 
+
+ 
+
+# Insert the unavailability period into the EmployeeUnavailability table 
+insert_query = f""" 
+INSERT INTO EmployeeUnavailability (employee_id, unavailable_start_date, unavailable_end_date, reason) 
+VALUES ('{employee_id}', '{unavailable_start_date}', '{unavailable_end_date}', '{reason}') 
+""" 
+
+try: 
+
+    cursor.execute(insert_query) 
+    conn.commit() 
+    print(f"Employee {employee_id} marked as unavailable from {unavailable_start_date} to {unavailable_end_date} for {reason}.") 
+except Exception as e: 
+    print("Error inserting unavailability:", e) 
+
+# Query to find services the mechanic is involved in during their unavailability period 
+services_query = f""" 
+SELECT 
+    s.service_id, 
+    s.registration, 
+    s.dropoff_date, 
+    s.dropoff_time, 
+    s.work_required 
+FROM 
+    ServiceEmployee se 
+INNER JOIN 
+    Services s ON se.service_id = s.service_id 
+WHERE 
+    se.employee_id = '{employee _id}' 
+    AND s.dropoff_date BETWEEN '{unavailable_start_date}' AND '{unavailable_end_date}' 
+ORDER BY 
+    s.dropoff_date, s.dropoff_time; 
+""" 
+
+# Execute the query 
+try: 
+    cursor.execute(services_query) 
+    results = cursor.fetchall() 
+ 
+    # Fetch column names 
+    columns = [desc[0] for desc in cursor.description] 
+
+    # Convert results to a pandas DataFrame 
+    if not results: 
+        print("No services found for the mechanic during the unavailability period.") 
+    else: 
+        formatted_results = [list(row) for row in results] 
+        df = pd.DataFrame(formatted_results, columns=columns) 
+        print(df) 
+
+except Exception as e: 
+    print("Error querying services:", e) 
+
+# Close the connection 
+cursor.close() 
+conn.close() 
