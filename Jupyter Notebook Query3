@@ -1,0 +1,56 @@
+List the total time spent servicing cars per mechanic over a 24hr period between two given 
+dates 
+
+import pyodbc 
+import pandas as pd 
+  
+# Establish the database connection 
+conn = pyodbc.connect("DRIVER={SQL Server};SERVER=ZSOLTSPC\\SQLEXPRESS;DATABASE=CarServiceDB") 
+cursor = conn.cursor() 
+
+# Define date and time range 
+start_datetime = '2020-06-17 12:30:00'  # Replace with your start datetime 
+end_datetime = '2020-06-18 12:30:00'    # Replace with your end datetime 
+
+# SQL Query 
+query = f""" 
+SELECT 
+    se.employee_id, 
+    e.emp_name, 
+    SUM(COALESCE(DATEDIFF(MINUTE, '00:00:00', se.time_spent), 0)) AS total_service_time_minutes 
+FROM 
+    ServiceEmployee se 
+INNER JOIN 
+    Employee e ON se.employee_id = e.employee_id 
+INNER JOIN 
+    Services s ON se.service_id = s.service_id 
+WHERE 
+    CAST(s.dropoff_date AS DATETIME) + CAST(s.dropoff_time AS DATETIME) BETWEEN '{start_datetime}' AND '{end_datetime}' 
+GROUP BY 
+    se.employee_id, e.emp_name 
+ORDER BY 
+    total_service_time_minutes DESC; 
+""" 
+
+# Execute the query 
+try: 
+    cursor.execute(query) 
+    results = cursor.fetchall() 
+
+    # Fetch column names 
+    columns = [desc[0] for desc in cursor.description] 
+  
+    # Convert results to a pandas DataFrame 
+    if not results: 
+        df = pd.DataFrame(columns=columns)  # Empty DataFrame 
+    else: 
+        formatted_results = [list(row) for row in results] 
+        df = pd.DataFrame(formatted_results, columns=columns)  # Populate with results 
+        print(df) 
+
+except Exception as e: 
+    print("Error:", e) 
+  
+# Close the connection 
+cursor.close() 
+conn.close() 
