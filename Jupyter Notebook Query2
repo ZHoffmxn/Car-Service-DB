@@ -1,0 +1,78 @@
+Get the name of any mechanics who have worked on previous services of a car involved in a new service booking, together with the number of jobs in which they are already involved 
+on the day the car is dropped off. If the number of jobs they are already involved is zero on 
+the day the car is dropped off, then they should not be returned in the result. 
+
+ 
+
+import pyodbc 
+import pandas as pd 
+
+# Establish the database connection 
+conn = pyodbc.connect("DRIVER={SQL Server};SERVER=ZSOLTSPC\\SQLEXPRESS;DATABASE=CarServiceDB") 
+cursor = conn.cursor() 
+
+# Define the registration of the car involved in the new service booking 
+car_registration = 'DCZ 1844'  # Replace with the actual car registration 
+
+# SQL Query 
+query = f""" 
+WITH PreviousServices AS ( 
+    SELECT 
+        se.employee_id, 
+        e.emp_name, 
+        s.registration, 
+        s.dropoff_date 
+    FROM 
+        ServiceEmployee se 
+    INNER JOIN 
+        Employee e ON se.employee_id = e.employee_id 
+    INNER JOIN 
+        Services s ON se.service_id = s.service_id 
+    WHERE 
+        s.registration = '{car_registration}' 
+), 
+
+JobsOnDropoffDay AS ( 
+    SELECT 
+        se.employee_id, 
+        COUNT(*) AS job_count, 
+        s.dropoff_date 
+    FROM 
+        ServiceEmployee se 
+    INNER JOIN 
+        Services s ON se.service_id = s.service_id 
+    GROUP BY 
+        se.employee_id, s.dropoff_date 
+) 
+
+SELECT 
+    ps.emp_name, 
+    j.job_count 
+FROM 
+    PreviousServices ps 
+INNER JOIN 
+    JobsOnDropoffDay j ON ps.employee_id = j.employee_id AND ps.dropoff_date = j.dropoff_date 
+WHERE 
+    j.job_count > 0 
+ORDER BY 
+    j.job_count DESC; 
+""" 
+
+# Execute the query 
+cursor.execute(query) 
+results = cursor.fetchall() 
+ 
+# Fetch column names 
+columns = [desc[0] for desc in cursor.description] 
+
+# Convert results to a pandas DataFrame 
+if not results: 
+    print("No data found for the given car registration.") 
+else: 
+    formatted_results = [list(row) for row in results] 
+    df = pd.DataFrame(formatted_results, columns=columns) 
+    print(df) 
+
+# Close the connection 
+cursor.close() 
+conn.close() 
