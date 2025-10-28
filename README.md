@@ -1,2 +1,2 @@
-This project was completed as a part of my Databases module during Year 1 of my studies at Ulster University Belfast. It includes the SQL queries for the creation of a database for a car mechanic shop, and queries for the import of pre-exisiting data to the database.
+This project was completed as a part of my Databases module during Year 1 of my studies at Ulster University Belfast. It includes the SQL queries for the creation of a database for a car mechanic shop, and queries for the import of pre-existing data to the database.
 It also includes the Jupyter Notebook queries for queries setout within my module handbook to test the efficacy of my database design and function.
