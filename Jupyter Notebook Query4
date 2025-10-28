@@ -1,0 +1,53 @@
+List the name and email address of customers who own a car where the date of next 
+service falls between two given dates. The list should include the make and registration of 
+the car and the date of next service. 
+
+import pyodbc 
+import pandas as pd 
+
+# Establish the database connection 
+conn = pyodbc.connect("DRIVER={SQL Server};SERVER=ZSOLTSPC\\SQLEXPRESS;DATABASE=CarServiceDB") 
+cursor = conn.cursor() 
+
+# Define the date range 
+start_date = '2021-06-18'  # Replace with your desired start date 
+end_date = '2021-06-20'    # Replace with your desired end date 
+
+# SQL Query 
+query = f""" 
+SELECT 
+    c.cust_name AS customer_name, 
+    c.cust_email AS customer_email, 
+    v.make AS car_make, 
+    v.registration AS car_registration, 
+    s.next_service AS next_service_date 
+FROM 
+    Customer c 
+INNER JOIN 
+    Vehicle v ON c.customer_id = v.customer_id 
+INNER JOIN 
+    Services s ON v.registration = s.registration 
+WHERE 
+    s.next_service BETWEEN '{start_date}' AND '{end_date}' 
+ORDER BY 
+    s.next_service ASC; 
+""" 
+
+# Execute the query 
+cursor.execute(query) 
+results = cursor.fetchall() 
+
+# Fetch column names 
+columns = [desc[0] for desc in cursor.description] 
+
+# Convert results to a pandas DataFrame 
+if not results: 
+    print("No data found for the given date range.") 
+else: 
+    formatted_results = [list(row) for row in results] 
+    df = pd.DataFrame(formatted_results, columns=columns) 
+    print(df) 
+
+# Close the connection 
+cursor.close() 
+conn.close() 
