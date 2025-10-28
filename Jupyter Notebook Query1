@@ -1,0 +1,61 @@
+Add details of a new service booking including the car involved, drop of date and time, but 
+without specifying the mechanic(s) who will work on it. 
+
+import pyodbc  
+
+
+# Establish the database connection  
+conn = pyodbc.connect("DRIVER={SQL Server};SERVER=localhost\SQLEXPRESS;DATABASE=CarServiceDB;UID=sa;PWD=Labuser1")  
+cursor = conn.cursor()  
+
+ 
+
+# Combined SQL Query  
+query = """  
+BEGIN TRY  
+    BEGIN TRANSACTION;  
+
+
+    -- Insert into Vehicles table if the registration does not exist  
+    IF NOT EXISTS (SELECT 1 FROM Vehicle WHERE registration = 'AK04RKF')  
+    BEGIN  
+        INSERT INTO Vehicles (registration, make, model, date_of_manufacture, customer_id)  
+        VALUES ('AK04RKF', 'Volkswagen', 'Golf', '2010-05-20', 'D13-101'); -- Replace with valid customer_id  
+    END  
+
+ 
+
+    -- Insert into Services table  
+    INSERT INTO Services (service_id, registration, dropoff_date, dropoff_time, work_required)  
+    VALUES (  
+        LEFT(CAST(NEWID() AS VARCHAR(36)), 15), -- Truncated NEWID for service_id  
+        'AK04RKF',                              -- Registration  
+        '2024-12-20',                           -- Dropoff date 
+        '09:00:00',                             -- Dropoff time  
+        'Oil change and tire rotation'          -- Work required  
+    );  
+
+    COMMIT TRANSACTION;  
+
+  
+    PRINT 'Service booking and vehicle entry (if necessary) added successfully.';  
+END TRY  
+
+BEGIN CATCH  
+    ROLLBACK TRANSACTION;  
+    PRINT 'Error occurred: ' + ERROR_MESSAGE();  
+END CATCH;  
+"""  
+
+# Execute the query  
+try:  
+    cursor.execute(query)  
+    conn.commit()  
+    print("Service booking and vehicle entry added successfully.")  
+except Exception as e:  
+    print("Error:", e)  
+
+
+# Close the connection  
+cursor.close()  
+conn.close() 
